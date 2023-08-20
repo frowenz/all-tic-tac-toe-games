@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Every Game of Tic Tac Toe </title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="./gamelocator.css">
+    <!--icon -->
+    <link rel="icon" href="./icon.png" type="image/x-icon" />
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100dvw;
+            background-color: white;
+        }
+
+        .leaflet-tile {
+            image-rendering: pixelated;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-locator opened-container">
+        <div class="game-content">
+            <div id="game-buttons">
+                <button id="undo-button">
+                    <svg width="30" height="30" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="#000000"
+                            d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L3.71 8.71C3.08 8.08 2 8.52 2 9.41V15c0 .55.45 1 1 1h5.59c.89 0 1.34-1.08.71-1.71l-1.91-1.91c1.39-1.16 3.16-1.88 5.12-1.88c3.16 0 5.89 1.84 7.19 4.5c.27.56.91.84 1.5.64c.71-.23 1.07-1.04.75-1.72C20.23 10.42 16.65 8 12.5 8z" />
+                    </svg>
+                </button>
+                <button id="locate-button" class="inactive">Locate</button>
+                <button id="close-button">Close</button>
+            </div>
+            <canvas id="board" width="192" height="192"></canvas>
+        </div>
+        <div class="find-game-text">Find a game</div>
+    </div>
+    <div id="map"></div>
+</body>
+
+<script src="./gamelocator.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+    var TILES_ACROSS = 576;
+    var TILES_DOWN = 443;
+    var centerY = -(TILES_DOWN * 256) / 2;
+    var centerX = (TILES_ACROSS * 256) / 2;
+
+    var map = L.map('map', {
+        crs: L.CRS.Simple,
+        minZoom: -2,
+        maxZoom: 2,
+        noWrap: true,
+        attributionControl: false,
+        zoomControl: false
+
+    }).setView([centerY, centerX], 0);
+
+    var northWest = [-TILES_DOWN * 256 - 1000, TILES_ACROSS * 256 + 1000]; // End coordinate based on tile size and number of tiles
+    var southEast = [1000, -1000]; // Start coordinate
+    var bounds = new L.LatLngBounds(northWest, southEast);
+    map.setMaxBounds(bounds);
+    
+    L.tileLayer('./tiles/{z}/tile_{y}_{x}.png', {
+        minZoom: -2,
+        maxZoom: 2,
+        minNativeZoom: 0,
+        maxNativeZoom: 0,
+        noWrap: true,
+        tileSize: 256, // Adjust if your tile size is different
+        bounds: [
+            [0, 0],
+            [TILES_DOWN * -256, TILES_ACROSS * 256]
+        ],
+        errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' // Empty 1x1 GIF
+    }).addTo(map);
+
+
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+    function moveToTile(row, col) {
+        var y = -128 + (row * -256); // Calculate y coordinate
+        var x = 128 + (col * 256); // Calculate x coordinate
+        map.setView([y, x], 1); // Update view to the new coordinates
+    }
+
+    fetch('./tile_positions.json')
+        .then(response => response.json())
+        .then(game_map_json => {
+            document.addEventListener('locate-game', function (e) {
+                [row, col] = game_map_json[e.detail];
+                moveToTile(row, col);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading JSON:', error);
+        });
+        
+</script>
+
+</html>
